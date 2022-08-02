@@ -3,15 +3,19 @@ package ru.spiridonov.cryptoapp.workers
 import android.content.Context
 import androidx.work.*
 import kotlinx.coroutines.delay
-import ru.spiridonov.cryptoapp.data.database.AppDatabase
+import ru.spiridonov.cryptoapp.data.database.CoinInfoDao
 import ru.spiridonov.cryptoapp.data.mapper.CoinMapper
-import ru.spiridonov.cryptoapp.data.network.ApiFactory
+import ru.spiridonov.cryptoapp.data.network.ApiService
+import javax.inject.Inject
 
-class RefreshDataWorker(context: Context, workerParameters: WorkerParameters) : CoroutineWorker
+class RefreshDataWorker(
+    context: Context,
+    workerParameters: WorkerParameters,
+    private val coinInfoDao: CoinInfoDao,
+    private val apiService: ApiService,
+    private val mapper: CoinMapper
+) : CoroutineWorker
     (context, workerParameters) {
-    private val coinInfoDao = AppDatabase.getInstance(context).coinPriceInfoDao()
-    private val apiService = ApiFactory.apiService
-    private val mapper = CoinMapper()
 
     override suspend fun doWork(): Result {
         while (true) {
@@ -38,5 +42,19 @@ class RefreshDataWorker(context: Context, workerParameters: WorkerParameters) : 
                 .setRequiresBatteryNotLow(true)
                 .setRequiredNetworkType(NetworkType.UNMETERED)
                 .build()
+    }
+
+    class Factory @Inject constructor(
+        private val coinInfoDao: CoinInfoDao,
+        private val apiService: ApiService,
+        private val mapper: CoinMapper
+    ) : ChildWorkerFactory {
+        override fun create(
+            context: Context,
+            workerParameters: WorkerParameters
+        ): ListenableWorker {
+            return RefreshDataWorker(context, workerParameters, coinInfoDao, apiService, mapper)
+        }
+
     }
 }
