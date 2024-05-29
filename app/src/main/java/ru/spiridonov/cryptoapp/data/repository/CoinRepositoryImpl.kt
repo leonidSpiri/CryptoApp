@@ -2,7 +2,7 @@ package ru.spiridonov.cryptoapp.data.repository
 
 import android.app.Application
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.Transformations
+import androidx.lifecycle.map
 import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import ru.spiridonov.cryptoapp.data.database.CoinInfoDao
@@ -18,20 +18,18 @@ class CoinRepositoryImpl @Inject constructor(
     private val coinInfoDao: CoinInfoDao
 ) : CoinRepository {
 
-
-    override fun getCoinInfoList(): LiveData<List<CoinInfo>> {
-        return Transformations.map(coinInfoDao.getPriceList()) {
-            it.map {
-                mapper.mapDbModelToEntity(it)
+    override fun getCoinInfoList(): LiveData<List<CoinInfo>> =
+        coinInfoDao.getPriceList().map { listCoinInfo ->
+            listCoinInfo.map { coinInfo ->
+                mapper.mapDbModelToEntity(coinInfo)
             }
         }
-    }
 
-    override fun getCoinInfo(fromSymbol: String): LiveData<CoinInfo> {
-        return Transformations.map(coinInfoDao.getPriceInfoAboutCoin(fromSymbol)) {
+
+    override fun getCoinInfo(fromSymbol: String): LiveData<CoinInfo> =
+        coinInfoDao.getPriceInfoAboutCoin(fromSymbol).map {
             mapper.mapDbModelToEntity(it)
         }
-    }
 
     override fun loadData() {
         val workManager = WorkManager.getInstance(application)
